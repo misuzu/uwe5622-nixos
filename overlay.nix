@@ -56,7 +56,7 @@ final: prev: let
     }
     {
       patch = null;
-      extraStructuredConfig = with prev.lib.kernel; {
+      structuredExtraConfig = with prev.lib.kernel; {
         AW_BIND_VERIFY = yes;
         AW_WIFI_DEVICE_UWE5622 = yes;
         SPARD_WLAN_SUPPORT = yes;
