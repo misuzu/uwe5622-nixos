@@ -1,5 +1,6 @@
-final: prev: let
-  kernelPatches = [
+final: prev:
+let
+  kernelPatches-6-12 = [
     {
       patch = ./0001-introduce-uwe5622-driver-for-kernel-6.3.patch;
     }
@@ -68,14 +69,30 @@ final: prev: let
       };
     }
   ];
-  applyKernelPatches = linuxPackages: linuxPackages.extend (
-    self: super: {
-      kernel = super.kernel.override (originalArgs: {
-        kernelPatches = (originalArgs.kernelPatches or [ ]) ++ kernelPatches;
-      });
-    }
-  );
-in {
-  linuxPackages_6_12_uwe5622_sunxi = applyKernelPatches prev.linuxPackages_6_12;
+  kernelPatches-6-18 = [
+    { patch = ./0019-Add-sunxi-addr-driver-Used-to-fix-uwe5622-bluetooth-MAC-address.patch; }
+    { patch = ./0020-uwe5622-fix-spanning-writes.patch; }
+    { patch = ./0021-uwe5622-v6.15-timer-api-changes.patch; }
+    { patch = ./0022-uwe5622-v6.16.patch; }
+    { patch = ./0023-uwe5622-v6.17.patch; }
+    { patch = ./0024-uwe5622-v6.18.patch; }
+    { patch = ./0025-arm64-dts-allwinner-h616-Enable-HDMI-on-several-boar.patch; }
+    { patch = ./0026-arm64-dts-sun50i-h618-orangepi-zero3-enable-gpu-mali.patch; }
+  ];
+  applyKernelPatches =
+    patches: linuxPackages:
+    linuxPackages.extend (
+      self: super: {
+        kernel = super.kernel.override (originalArgs: {
+          kernelPatches = (originalArgs.kernelPatches or [ ]) ++ patches;
+        });
+      }
+    );
+in
+{
+  linuxPackages_6_12_uwe5622_sunxi = applyKernelPatches kernelPatches-6-12 prev.linuxPackages_6_12;
+  linuxPackages_6_18_uwe5622_sunxi = applyKernelPatches (
+    kernelPatches-6-12 ++ kernelPatches-6-18
+  ) prev.linuxPackages_6_18;
   uwe5622-firmware = prev.callPackage ./firmware.nix { };
 }
