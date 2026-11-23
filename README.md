@@ -21,4 +21,4 @@ Yes! Only on OrangePi Zero3 for now though and only on kernel 6.18 (LTS). Tested
 
 - [`uwe5622`](https://github.com/armbian/uwe5622): AW859A / UWE5622 Linux driver.
 - [`uwe5622-ng`](https://github.com/LinuxMint-User/uwe5622-ng): AW859A / UWE5622 Linux driver (used here).
-- [`rangepi-zero-3-dtb-neo`](https://github.com/LinuxMint-User/orangepi-zero-3-dtb-neo): Board device tree for Orange Pi Zero 3 (Allwinner H618): additive patch on top of the mainline DTS, plus a frozen self-contained DTS.
+- [`orangepi-zero-3-dtb-neo`](https://github.com/LinuxMint-User/orangepi-zero-3-dtb-neo): Board device tree for Orange Pi Zero 3 (Allwinner H618): additive patch on top of the mainline DTS, plus a frozen self-contained DTS.
