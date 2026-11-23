@@ -1,33 +1,32 @@
 {
-  stdenvNoCC,
   lib,
-  fetchFromGitHub,
-  ...
+  runCommand,
+  armbian-firmware,
 }:
-stdenvNoCC.mkDerivation {
-  pname = "uwe5622-firmware";
-  version = "4050e02";
 
-  compressFirmware = false;
-  dontFixup = true;
-  dontBuild = true;
+runCommand "uwe5622-firmware-${armbian-firmware.version}"
+  {
+    # The driver reads wifi_2355b001_1ant.ini with filp_open(), not through
+    # the firmware loader, so it cannot see a compressed copy.
+    passthru.compressFirmware = false;
+    meta = {
+      description = "Firmware and configuration for the Unisoc UWE5622 (from armbian-firmware)";
+      inherit (armbian-firmware.meta) license;
+      platforms = lib.platforms.linux;
+    };
+  }
+  ''
+    src=${armbian-firmware}/lib/firmware
+    install -Dm644 -t $out/lib/firmware \
+      $src/uwe5622/wcnmodem.bin \
+      $src/uwe5622/wifi_2355b001_1ant.ini \
+      $src/bt_configure_pskey.ini
 
-  src = fetchFromGitHub {
-    owner = "armbian";
-    repo = "firmware";
-    rev = "4050e02da2dce2b74c97101f7964ecfb962f5aec";
-    sha256 = "sha256-wc4xyNtUlONntofWJm8/w0KErJzXKHijOyh9hAYTCoU=";
-  };
-
-  installPhase = ''
-    mkdir -p $out/lib/firmware
-    cp -r uwe5622/* $out/lib/firmware/
-  '';
-
-  meta = {
-    description = "Firmware for the uwe5622 from armbian.";
-    homepage = "https://github.com/armbian/firmware";
-    license = lib.licenses.unfreeRedistributableFirmware;
-    platforms = [ "aarch64-linux" ];
-  };
-}
+    # Bluetooth: the second byte of feature_set must be 0xFE, otherwise the
+    # chip advertises park mode, Write_Default_Link_Policy fails with 0x12
+    # and hci0 stays in HCI_SETUP (see the README).
+    sed -i -E 's/^(feature_set *= *0x[0-9A-Fa-f]+, *)0x[0-9A-Fa-f]+/\10xFE/' \
+      $out/lib/firmware/bt_configure_pskey.ini
+    grep -Eq '^feature_set *= *0x[0-9A-Fa-f]+, *0xFE' \
+      $out/lib/firmware/bt_configure_pskey.ini
+  ''

@@ -1,0 +1,75 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Orange Pi Zero 3: describe the UWE5622 SDIO WiFi/BT and the addr-mgt node
+ * used by sunxi_addr.  Taken from patches/zero3-dt.patch in
+ * https://github.com/LinuxMint-User/orangepi-zero-3-dtb-neo
+ * (4eadaafd96a1f27201b4b2c67b1428a0329234ef), rewritten as an overlay.
+ */
+
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/gpio/gpio.h>
+
+/ {
+	compatible = "xunlong,orangepi-zero3";
+};
+
+&{/} {
+	/*
+	 * PG18 is the chip's active-low reset.  It is modelled as the enable
+	 * line of the WiFi supply instead of a reset-gpios entry in
+	 * wifi-pwrseq: with CONFIG_RESET_GPIO enabled, pwrseq_simple hands a
+	 * single reset-gpios entry to the reset framework, whose GPIO fallback
+	 * only supports #gpio-cells = 2 (sunxi pio has 3), so the probe fails
+	 * with -ENOENT and mmc1 never comes up (seen on 6.18).
+	 *
+	 * Neither regulator is always-on: the MMC core enables them at power
+	 * up, after wifi-pwrseq has started the 32 kHz clock, and waits
+	 * post-power-on-delay-ms before scanning the card.
+	 */
+	reg_vcc33_wifi: vcc33-wifi {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc33-wifi";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		gpio = <&pio 6 18 GPIO_ACTIVE_HIGH>; /* PG18, chip out of reset when high */
+		enable-active-high;
+		vin-supply = <&reg_vcc5v>;
+	};
+
+	reg_vcc_wifi_io: vcc-wifi-io {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc-wifi-io";
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		vin-supply = <&reg_vcc33_wifi>;
+	};
+
+	wifi_pwrseq: wifi-pwrseq {
+		compatible = "mmc-pwrseq-simple";
+		clocks = <&rtc 1>;
+		clock-names = "ext_clock";
+		post-power-on-delay-ms = <200>;
+	};
+
+	/* hciattach_opi reads /sys/class/addr_mgt/addr_bt; sprdwl_ng uses the
+	 * same helper for its own address. */
+	addr-mgt {
+		compatible = "allwinner,sunxi-addr_mgt";
+		type_addr_wifi = <0x2>;
+		type_addr_bt = <0x2>;
+		type_addr_eth = <0x2>;
+		status = "okay";
+	};
+};
+
+&mmc1 {
+	vmmc-supply = <&reg_vcc33_wifi>;
+	vqmmc-supply = <&reg_vcc_wifi_io>;
+	mmc-pwrseq = <&wifi_pwrseq>;
+	bus-width = <4>;
+	non-removable;
+	mmc-ddr-1_8v;
+	status = "okay";
+};
